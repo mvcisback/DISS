@@ -107,7 +107,6 @@ def find_dfas2(accepting, rejecting, alphabet, order_by_stutter=False, N=20):
                 break
     avoid -= reach1  # Make sure now to kill anything in accepting.
 
-    print(f'{avoid=}')
     if avoid:
         avoid_lang = DFA(
             start=True, inputs=alphabet, label=bool,
