@@ -1,5 +1,5 @@
 from __future__ import annotations
-from functools import lru_cache
+from functools import partial, lru_cache
 from typing import Any, Optional, Sequence
 
 import attr
@@ -93,7 +93,7 @@ BASE_EXAMPLES = LabeledExamples(
 
 
 @lru_cache
-def find_dfas2(accepting, rejecting, alphabet, order_by_stutter=False, N=20):
+def find_dfas2(accepting, rejecting, alphabet, order_by_stutter=False, N=20, find_dfas=find_dfas):
     reach1 = set.union(*map(set, accepting)) if accepting else set()
     avoid = set.union(*map(set, rejecting)) if rejecting else set()
     reach2 = reach1 - avoid
@@ -137,6 +137,8 @@ def augment(self: PartialDFAIdentifier, data: LabeledExamples) -> LabeledExample
             data.negative,
             order_by_stutter=True,
             alphabet=self.partial.dfa.inputs,
+            find_dfas=self.find_dfas,
+            N=self.max_dfas
         )
         new_data = LabeledExamples()
         for test in tests:
@@ -163,6 +165,8 @@ class PartialDFAIdentifier:
     partial: DFAConcept = attr.ib(converter=DFAConcept.from_dfa)
     base_examples: LabeledExamples = LabeledExamples()
     try_reach_avoid: bool = False
+    find_dfas: Any = find_dfas
+    max_dfas: int = 20
 
     def partial_dfa(self, inputs) -> DFA:
         assert inputs <= self.partial.dfa.inputs
@@ -184,7 +188,7 @@ class PartialDFAIdentifier:
             data=data,
             filter_pred=self.is_subset,
             alphabet=self.partial.dfa.inputs,
-            find_dfas=find_dfas2,
+            find_dfas=partial(find_dfas2, find_dfas=self.find_dfas, N=self.max_dfas),
             order_by_stutter=True,
             temp=1,
             ref=reference
