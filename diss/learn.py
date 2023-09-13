@@ -273,7 +273,7 @@ def diss(
         temp=sgs_temp,
     )
     def handler(signum, frame):
-        raise ConceptIdException
+        raise TimeoutError
     signal.signal(signal.SIGALRM, handler)
 
     def drop_pred(example):
@@ -303,13 +303,17 @@ def diss(
             proposed_examples = examples2 @ new_data
 
         try:
-            signal.alarm(synth_timeout)
-            concept = to_concept(proposed_examples, concept=concept)
-            signal.alarm(0)  # Unset alarm.
-            concept2data.setdefault(concept, proposed_examples)
-        except ConceptIdException:
-            new_data = LabeledExamples()  # Reject: New data caused problem. 
-            signal.alarm(0)  # Unset alarm.
+            try:
+                signal.alarm(synth_timeout)
+                concept = to_concept(proposed_examples, concept=concept)
+                signal.alarm(0)  # Unset alarm.
+                concept2data.setdefault(concept, proposed_examples)
+            except ConceptIdException:
+                signal.alarm(0)  # Unset alarm.
+                new_data = LabeledExamples()  # Reject: New data caused problem. 
+                continue
+        except TimeoutError:
+            new_data = LabeledExamples()      # Reject: Ran out of time.
             continue
 
         new_data, metadata = sggs(concept)
